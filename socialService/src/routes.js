@@ -1,0 +1,14 @@
+const express = require('express');
+const router = express.Router();
+const socialCtrl = require ('./controller');
+
+router.post('/', socialCtrl.createOneSocial);
+router.get('/', socialCtrl.getAllSocials);
+router.delete('/', socialCtrl.deleteAllSocials);
+router.get('/:socialId', socialCtrl.getOneSocial);
+router.delete('/:socialId', socialCtrl.deleteOneSocial);
+router.get('/friends/:userId', socialCtrl.getUserFriends);
+router.get('/followers/:userId', socialCtrl.getUserFollowers);
+router.delete('/:userId', socialCtrl.deleteUserSocials);
+
+module.exports = router;
