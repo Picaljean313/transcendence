@@ -6,10 +6,10 @@ exports.createOneAuth = async (req, res) => {
     const { email, password, login42 } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password required.' });
+      return res.status(400).json({ error: 'Email and password are required.' });
     }
 
-    const auth = await prisma.auth.create({
+    await prisma.auth.create({
       data: {
         userId: uuidv4(),
         email,
@@ -21,10 +21,10 @@ exports.createOneAuth = async (req, res) => {
   }
   catch (error) {
     if (error.code === 'P2002') {
-      return res.status(409).json({ error: 'Email or login42 already used.' });
+      return res.status(409).json({ error: 'Email or login42 already in use.' });
     }
     console.error(error);
-    return res.status(500).json({ error: 'Server error.' });
+    return res.status(500).json({ error: 'Internal server error.' });
   }
 };
 
@@ -43,7 +43,7 @@ exports.getAllAuths = async (req, res) => {
   }
   catch (error) {
     console.error(error);
-    return res.status(500).json({ error: 'Server error.' });
+    return res.status(500).json({ error: 'Internal server error.' });
   }
 };
 
@@ -54,7 +54,7 @@ exports.deleteAllAuths = async (req, res) => {
   }
   catch (error) {
     console.error(error);
-    return res.status(500).json({ error: 'Server error.' });
+    return res.status(500).json({ error: 'Internal server error.' });
   }
 };
 
@@ -63,18 +63,11 @@ exports.getOneAuth = async (req, res) => {
     const { authId } = req.params;
 
     const auth = await prisma.auth.findUnique({
-      where: { id: authId },
-      select: {
-        id:        true,
-        userId:    true,
-        email:     true,
-        login42:   true,
-        createdAt: true,
-      },
+      where: { id: authId }
     });
 
     if (!auth) {
-      return res.status(404).json({ error: `Can't find user.` });
+      return res.status(404).json({ error: 'Auth not found.' });
     }
 
     return res.status(200).json(auth);
@@ -82,7 +75,7 @@ exports.getOneAuth = async (req, res) => {
   }
   catch (error) {
     console.error(error);
-    return res.status(500).json({ error: 'Server error.' });
+    return res.status(500).json({ error: 'Internal server error.' });
   }
 };
 
@@ -104,12 +97,12 @@ exports.modifyOneAuth = async (req, res) => {
   catch (error) {
     switch (error.code) {
       case 'P2025':
-        return res.status(404).json({ error: `Can't find user.` });
+        return res.status(404).json({ error: 'Auth not found.' });
       case 'P2002':
-        return res.status(409).json({ error: 'Email or login42 already used.' });
+        return res.status(409).json({ error: 'Email or login42 already in use.' });
       default:
         console.error(error);
-        return res.status(500).json({ error: 'Server error.' });
+        return res.status(500).json({ error: 'Internal server error.' });
     }
   }
 };
@@ -126,10 +119,10 @@ exports.deleteOneAuth = async (req, res) => {
   catch (error) {
     switch (error.code) {
       case 'P2025':
-        return res.status(404).json({ error: `Can't find user.` });
+        return res.status(404).json({ error: 'Auth not found.' });
       default:
         console.error(error);
-        return res.status(500).json({ error: 'Server error.' });
+        return res.status(500).json({ error: 'Internal server error.' });
     }
   }
 };
