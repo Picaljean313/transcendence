@@ -9,6 +9,7 @@ router.get('/post/:postId', contentCtrl.getOnePost);
 router.put('/post/:postId', contentCtrl.modifyOnePost);
 router.delete('/post/:postId', contentCtrl.deleteOnePost);
 router.get('/post/:userId', contentCtrl.getUserPosts);
+router.get('/post/count/:userId', contentCtrl.getUserPostsCount);
 router.delete('/post/:userId', contentCtrl.deleteUserPosts);
 
 router.post('/comment/', contentCtrl.createOneComment);

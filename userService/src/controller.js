@@ -124,3 +124,22 @@ exports.deleteOneUser = async (req, res) => {
     }
   }
 };
+
+exports.getOneUserByUsername = async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { username: username },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    return res.status(200).json(user);
+  }
+  catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};

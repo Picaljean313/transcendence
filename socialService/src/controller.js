@@ -143,3 +143,33 @@ exports.deleteUserSocials = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error.' });
   }
 };
+
+exports.getUserFriendsCount = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const { count } = await prisma.social.count({
+      where: { userId },
+    });
+    return res.status(200).json({ count });
+  }
+  catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.getUserFollowersCount = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const { count } = await prisma.social.count({
+      where: { friendId: userId },
+    });
+    return res.status(200).json({ count });
+  }
+  catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};

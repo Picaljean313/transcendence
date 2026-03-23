@@ -127,4 +127,41 @@ exports.deleteOneAuth = async (req, res) => {
   }
 };
 
+exports.getOneAuthByLogin42 = async (req, res) => {
+  try {
+    const { login42 } = req.params;
+
+    const auth = await prisma.auth.findUnique({
+      where: { login42: login42 },
+    });
+
+    if (!auth) {
+      return res.status(404).json({ error: 'Auth not found.' });
+    }
+    return res.status(200).json(auth);
+  }
+  catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.getOneAuthByEmail = async (req, res) => {
+  try {
+    const { email } = req.params;
+
+    const auth = await prisma.auth.findUnique({
+      where: { email: email },
+    });
+
+    if (!auth) {
+      return res.status(404).json({ error: 'Auth not found.' });
+    }
+    return res.status(200).json(auth);
+  }
+  catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
 

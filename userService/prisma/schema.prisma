@@ -12,6 +12,7 @@ model User {
   firstname String
   lastname  String
   avatar    String?
+  bio       String?
   theme     Theme    @default(LIGHT)
   langue    String   @default("en")
   createdAt DateTime @default(now())
