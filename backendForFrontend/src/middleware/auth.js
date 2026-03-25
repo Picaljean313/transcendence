@@ -1,38 +1,38 @@
-// const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 
-// exports.classicAuth = async (req, res, next) => {
-//   const invalidBearerToken = !rules.valid(auth.tokenToValidate, req.headers.authorization);
-//   if (invalidBearerToken) return functions.response(res, 401);
+const validateAuthorization = (authorization) => {
+  if (typeof authorization !== 'string')
+    return false;
+  if (authorization.length < 10)
+    return false;
+  if (authorization.length > 1000)
+    return false;
+  if (!/^Bearer\s\S+$/.test(authorization))
+    return false;
+  return true;
+};
 
-//   const tokenSplited = req.headers.authorization.split(' ')[1];
-//   let token;
-//   try {
-//     token = await TokenModel.findOne({ token: tokenSplited });
-//   } catch {
-//     console.log("Can't find token.");
-//     return functions.response(res, 500);
-//   }
-//   if (token === null) return functions.response(res, 401);
+exports.classicAuth = async (req, res, next) => {
+  const authorization = req.headers.authorization;
 
-//   const decodedToken = jwt.verify(token.token, 'HARIBO_C_EST_BEAU_LA_VIE', (error, decodedToken)=> {
-//     return decodedToken
-//   });
-//   if (decodedToken === undefined) return functions.response(res, 401);
-  
-//   const userId = decodedToken["userId"];
-//   const isAdmin = decodedToken["isAdmin"];
-//   req.auth = {
-//     userId: userId,
-//     isAdmin: isAdmin
-//   };
-//   let user;
-//   try {
-//     user = await UsersModel.findOne({ _id : req.auth.userId });
-//   } catch {
-//     console.log("Can't find user.");
-//     return functions.response(res, 500);
-//   }
-//   if (user === null) return functions.response(res, 401);
+  if (!validateAuthorization(authorization)) {
+    return res.status(401).json({ error: 'Invalid authorization format.' });
+  }
 
-//   next();
-// };
+  const token = authorization.split(' ')[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.userId = decoded.userId;
+  }
+  catch (error) {
+    return res.status(401).json({ error: 'Invalid or expired token.' });
+  }
+
+  const response = await fetch(`${process.env.AUTH_SERVICE_URL}/id/${decoded.userId}`);
+  if (!response.ok) {
+    return res.status(401).json({ error: 'User not found.' });
+  }
+
+  next();
+};

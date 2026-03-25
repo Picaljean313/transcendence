@@ -8,8 +8,9 @@ datasource db {
 
 model Post {
   id         String   @id @default(uuid())
-  texte      String
+  content    String?
   image      String?
+  pdf        String?
   userId     String
   createdAt  DateTime @default(now())
   modifiedAt DateTime @updatedAt
@@ -20,7 +21,7 @@ model Post {
 
 model Comment {
   id         String   @id @default(uuid())
-  texte      String
+  content    String
   userId     String
   postId     String
   createdAt  DateTime @default(now())

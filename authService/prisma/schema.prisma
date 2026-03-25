@@ -10,7 +10,7 @@ model Auth {
   id        String   @id @default(uuid())
   userId    String   @unique
   email     String   @unique
-  login42  String?  @unique
+  login42   String?  @unique
   password  String
   createdAt DateTime @default(now())
 }

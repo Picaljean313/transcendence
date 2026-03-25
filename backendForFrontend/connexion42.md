@@ -297,3 +297,105 @@ BFF redirige le frontend avec le JWT
 | `CLIENT_SECRET` exposé | ✗ Oui — dangereux | ✓ Non — côté serveur |
 | Token visible dans le navigateur | ✗ Oui | ✓ Non |
 | Contrôle sur les données | ✗ Limité | ✓ Total |
+
+
+
+
+
+________-----------____________------------____________----------__________--
+
+## Flow d'inscription via l'API 42
+
+```
+Frontend                       BFF                        API 42                authService / userService
+   │                            │                            │                            │
+   │── GET /auth/register/42 ──▶│                            │                            │
+   │                            │── redirect ───────────────▶│                            │
+   │◀──────────────────────────────── page login 42 ─────────│                            │
+   │── login + password ───────────────────────────────────▶│                            │
+   │                            │◀─── code ─────────────────│                            │
+   │                            │── échange code + secret ──▶│                            │
+   │                            │◀─── access_token ──────────│                            │
+   │                            │── GET /v2/me ──────────────▶│                            │
+   │                            │◀─── login, email, etc. ────│                            │
+   │                            │── GET /login/{login} ──────────────────────────────────▶│
+   │                            │◀─── 404 (n'existe pas) ────────────────────────────────│
+   │◀─── { login, first_name,   │                            │                            │
+   │       last_name, email,    │                            │                            │
+   │       avatar } ────────────│                            │                            │
+   │                            │                            │                            │
+   │                            │                            │                            │
+   │── POST /auth/register ─────▶│                            │                            │
+   │   { login, first_name,     │── POST /auth ─────────────────────────────────────────▶│
+   │     last_name, email,      │── POST /users ─────────────────────────────────────────▶│
+   │     password, avatar }     │◀─── 201 ───────────────────────────────────────────────│
+   │◀─── JWT ───────────────────│                            │                            │
+```
+
+---
+
+## Requête 1 — Redirection vers 42
+
+Le frontend redirige simplement le navigateur, pas de `fetch` :
+
+```javascript
+// Frontend
+window.location.href = 'https://localhost:3000/auth/register/42';
+```
+
+**Pas de body** — c'est une simple redirection.
+
+---
+
+## Requête 2 — Récupérer les données 42 après callback
+
+Le BFF redirige automatiquement vers le frontend après le callback avec les données en query params, ou le frontend attend la réponse du BFF sur la page de callback.
+
+Le BFF retourne :
+```json
+{
+  "login":      "adrien",
+  "first_name": "Adrien",
+  "last_name":  "Dupont",
+  "email":      "adrien@student.42.fr",
+  "avatar":     "https://cdn.intra.42.fr/..."
+}
+```
+
+Le frontend récupère ces données et affiche un **formulaire de finalisation** où l'utilisateur choisit son mot de passe.
+
+---
+
+## Requête 3 — Finaliser l'inscription
+
+```javascript
+// Frontend
+const response = await fetch('https://localhost:3000/auth/register', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    login:      'adrien',        // récupéré depuis le callback
+    first_name: 'Adrien',        // récupéré depuis le callback
+    last_name:  'Dupont',        // récupéré depuis le callback
+    email:      'adrien@42.fr',  // récupéré depuis le callback
+    avatar:     'https://...',   // récupéré depuis le callback
+    password:   'MonMotDePasse', // saisi par l'utilisateur
+  }),
+});
+
+const { token } = await response.json();
+// Stocker le JWT
+localStorage.setItem('token', token);
+```
+
+---
+
+## Récapitulatif
+
+| # | Qui appelle | Route | Body | Réponse |
+|---|---|---|---|---|
+| 1 | Frontend | `GET /auth/register/42` | Aucun | Redirection vers 42 |
+| 2 | API 42 | `GET /auth/register/callback` | Aucun (géré par 42) | `{ login, first_name, last_name, email, avatar }` |
+| 3 | Frontend | `POST /auth/register` | `{ login, first_name, last_name, email, avatar, password }` | `{ token }` |

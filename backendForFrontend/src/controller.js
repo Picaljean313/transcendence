@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require ('bcrypt');
+const path   = require('path');
 
 exports.registerRedirectTo42 = (req, res) => {
   const params = new URLSearchParams({
@@ -45,7 +46,7 @@ exports.registerHandleCallback = async (req, res) => {
     const { login, first_name, last_name, email, image } = user42;
     const avatar = image?.versions?.medium ?? image?.link ?? null;
   
-    const response = await fetch(`https://localhost:3000/login/${login}`);
+    const response = await fetch(`${process.env.AUTH_SERVICE_URL}/login/${login}`);
 
     if (response.ok)
       return res.status(409).json({ error: 'login42 already in use.' });
@@ -105,13 +106,13 @@ exports.authHandleCallback = async (req, res) => {
     if (!user42Response.ok) {
       return res.status(502).json({ error: 'Failed to retrieve 42 user data.' });
     }
-    const { login } = await user42Response.json();
+    const { login, campus, cursus, level } = await user42Response.json();
 
     if (!login) {
       return res.status(502).json({ error: 'Invalid response from 42 API.' });
     }
   
-    const authResponse = await fetch(`https://localhost:3000/login/${login}`);
+    const authResponse = await fetch(`${process.env.AUTH_SERVICE_URL}/login/${login}`);
 
     if (authResponse.status === 404)
       return res.status(404).json({ error: 'No account found.' });
@@ -121,10 +122,10 @@ exports.authHandleCallback = async (req, res) => {
     }
 
     const [userResponse, friendsCount, followersCount, postsCount] = await Promise.all([
-      fetch(`https://localhost:3001/id/${authResponse.userId}`).then(r => r.json()),
-      fetch(`https://localhost:3002/friendsCount/${authResponse.userId}`).then(r => r.json()),
-      fetch(`https://localhost:3002/followersCount/${authResponse.userId}`).then(r => r.json()),
-      fetch(`https://localhost:3003/post/count/${authResponse.userId}`).then(r => r.json()),
+      fetch(`${process.env.USER_SERVICE_URL}/id/${authResponse.userId}`).then(r => r.json()),
+      fetch(`${process.env.SOCIAL_SERVICE_URL}/friendsCount/${authResponse.userId}`).then(r => r.json()),
+      fetch(`${process.env.SOCIAL_SERVICE_URL}/followersCount/${authResponse.userId}`).then(r => r.json()),
+      fetch(`${process.env.CONTENT_SERVICE_URL}/post/count/${authResponse.userId}`).then(r => r.json()),
     ]).catch(() => {
       return res.status(503).json({ error: 'Service unavailable.' });
     });
@@ -133,11 +134,14 @@ exports.authHandleCallback = async (req, res) => {
         "id": authResponse.userId,                        
         "username": authResponse.login42,
         "email": authResponse.email,
-        "firstName": userResponse.firstname,
-        "lastName": userResponse.lastname,
+        "firstname": userResponse.firstname,
+        "lastname": userResponse.lastname,
         "bio": userResponse.bio,
         "theme": userResponse.theme,
         "avatar": userResponse.avatar,
+        "campus": campus,
+        "cursus": cursus,
+        "level": level,
         "postsCount": postsCount,
         "followersCount": followersCount,
         "followingCount": friendsCount,
@@ -173,7 +177,7 @@ exports.authClassic = async (req, res) => {
     return res.status(400).json({ error: 'Password is required.' });
   }
   
-  const authResponse = await fetch(`https://localhost:3000/email/${req.body.email}`);
+  const authResponse = await fetch(`${process.env.AUTH_SERVICE_URL}/email/${req.body.email}`);
 
   if (authResponse.status === 404)
     return res.status(404).json({ error: 'No account found.' });
@@ -195,10 +199,10 @@ exports.authClassic = async (req, res) => {
   }
 
   const [userResponse, friendsCount, followersCount, postsCount] = await Promise.all([
-    fetch(`https://localhost:3001/id/${authResponse.userId}`).then(r => r.json()),
-    fetch(`https://localhost:3002/friendsCount/${authResponse.userId}`).then(r => r.json()),
-    fetch(`https://localhost:3002/followersCount/${authResponse.userId}`).then(r => r.json()),
-    fetch(`https://localhost:3003/post/count/${authResponse.userId}`).then(r => r.json()),
+    fetch(`${process.env.USER_SERVICE_URL}/id/${authResponse.userId}`).then(r => r.json()),
+    fetch(`${process.env.SOCIAL_SERVICE_URL}/friendsCount/${authResponse.userId}`).then(r => r.json()),
+    fetch(`${process.env.SOCIAL_SERVICE_URL}/followersCount/${authResponse.userId}`).then(r => r.json()),
+    fetch(`${process.env.CONTENT_SERVICE_URL}/post/count/${authResponse.userId}`).then(r => r.json()),
   ]).catch(() => {
     return res.status(503).json({ error: 'Service unavailable.' });
   });
@@ -207,8 +211,8 @@ exports.authClassic = async (req, res) => {
       "id": authResponse.userId,                        
       "username": authResponse.login42,
       "email": authResponse.email,
-      "firstName": userResponse.firstname,
-      "lastName": userResponse.lastname,
+      "firstname": userResponse.firstname,
+      "lastname": userResponse.lastname,
       "bio": userResponse.bio,
       "theme": userResponse.theme,
       "avatar": userResponse.avatar,
@@ -233,8 +237,56 @@ exports.authClassic = async (req, res) => {
   return res.status(200).json({user : user, token : token});
 };
 
+exports.uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file provided.' });
+    }
+
+    const { userId } = req.params;
+    const filename   = req.file.filename;
+
+    const response = await fetch(`${process.env.USER_SERVICE_URL}/id/${userId}`, {
+      method:  'PUT',
+      headers: {
+        'Content-Type':      'application/json'
+      },
+      body: JSON.stringify({ avatar: filename }),
+    });
+
+    if (!response.ok) {
+      return res.status(503).json({ error: 'User service unavailable.' });
+    }
+
+    return res.status(200).json({ avatar: filename });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
 
 
+exports.getFiles = async (req, res) => {
+  const { folder, filename } = req.params;
+
+  if (folder.includes('..') || filename.includes('..')) {
+    return res.status(400).json({ error: 'Invalid path.' });
+  }
+
+  const allowedFolders = ['avatars', 'pdfs'];
+  if (!allowedFolders.includes(folder)) {
+    return res.status(400).json({ error: 'Invalid folder.' });
+  }
+
+  const filePath = path.resolve(`./uploads/${folder}/${filename}`);
+  
+  res.sendFile(filePath, (error) => {
+    if (error) {
+      return res.status(404).json({ error: 'File not found.' });
+    }
+  });
+};
 
 
 
@@ -265,16 +317,16 @@ const getValid42Token = async () => {
 
 exports.search42Users = async (req, res) => {
   try {
-    const { query } = req.query;
+    const { login } = req.params;
 
-    if (!query || query.trim() === '') {
+    if (!login || login.trim() === '') {
       return res.status(400).json({ error: 'Search cannot be empty.' });
     }
 
     const accessToken = await getValid42Token();
 
     const params = new URLSearchParams({
-      'search[login]': query,
+      'search[login]': login,
       per_page:        10,
     });
 
@@ -298,7 +350,7 @@ exports.search42Users = async (req, res) => {
       };
     });
 
-    return res.status(200).json({ users });
+    return res.status(200).json(users);
   }
   catch (error) {
     console.error(error.message);
