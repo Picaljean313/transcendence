@@ -95,8 +95,213 @@ exports.createOnePost = async (req, res) => {
 
     return res.sendStatus(201);
 
-  } catch (error) {
-    console.error(error);
+  }
+  catch (error) {
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.getOnePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const [postResponse, commentsCount, likesCount] = await Promise.all([
+      fetch(`${process.env.CONTENT_SERVICE_URL}/post/${postId}`),
+      fetch(`${process.env.CONTENT_SERVICE_URL}/comment/count/post/${postId}`).then(r => r.json()),
+      fetch(`${process.env.CONTENT_SERVICE_URL}/like/count/post/${postId}`).then(r => r.json()),
+    ]);
+
+    if (postResponse.status === 404) {
+      return res.status(404).json({ error: 'Post not found.' });
+    }
+
+    if (!postResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    const post = await postResponse.json();
+
+    return res.status(200).json({
+      id: post.id,
+      content: post.content ?? null,
+      image: post.image ?? null,
+      pdf: post.pdf ?? null,
+      userId: post.userId,
+      createdAt: post.createdAt,
+      modifiedAt: post.modifiedAt,
+      commentsCount: commentsCount?.count ?? 0,
+      likesCount: likesCount?.count ?? 0,
+    });
+
+  }
+  catch (error) {
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.modifyOnePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const postCheckResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/post/${postId}`);
+
+    if (postCheckResponse.status === 404) {
+      return res.status(404).json({ error: 'Post not found.' });
+    }
+
+    if (!postCheckResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    const post = await postCheckResponse.json();
+
+    if (post.userId !== req.userId) {
+      return res.status(403).json({ error: 'Forbidden.' });
+    }
+
+    let postData = {};
+    if (req.body.post) {
+      try {
+        postData = JSON.parse(req.body.post);
+      }
+      catch {
+        return res.status(400).json({ error: 'Invalid post data format.' });
+      }
+    }
+
+    const { content } = postData;
+
+    const image = req.file && req.file.mimetype !== 'application/pdf'
+      ? `${process.env.BFF_URL}/uploads/images/${req.file.filename}`
+      : undefined;
+
+    const pdf = req.file && req.file.mimetype === 'application/pdf'
+      ? `${process.env.BFF_URL}/uploads/pdfs/${req.file.filename}`
+      : undefined;
+
+    const updateResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/post/${postId}`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...(content !== undefined && { content }),
+        ...(image   !== undefined && { image }),
+        ...(pdf     !== undefined && { pdf }),
+      }),
+    });
+
+    if (!updateResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    return res.sendStatus(200);
+
+  }
+  catch (error) {
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.deleteOnePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const postCheckResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/post/${postId}`);
+
+    if (postCheckResponse.status === 404) {
+      return res.status(404).json({ error: 'Post not found.' });
+    }
+
+    if (!postCheckResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    const post = await postCheckResponse.json();
+
+    if (post.userId !== req.userId) {
+      return res.status(403).json({ error: 'Forbidden.' });
+    }
+
+    const postResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/post/${postId}`, { method: 'DELETE' });
+
+    if (!postResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    return res.sendStatus(200);
+
+  }
+  catch (error) {
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.getCommentsFromPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { date, limit } = req.query;
+
+    const params = new URLSearchParams();
+    if (date)  params.append('date',  date);
+    if (limit) params.append('limit', limit);
+    params.append('sort', 'desc');
+
+    const commentsResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/comment/post/${postId}?${params}`);
+
+    if (commentsResponse.status === 404) {
+      return res.status(404).json({ error: 'Post not found.' });
+    }
+
+    if (!commentsResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    const comments = await commentsResponse.json();
+
+    return res.status(200).json(comments);
+
+  }
+  catch (error) {
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.createOneComment = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required.' });
+    }
+
+    const postCheckResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/post/${postId}`);
+
+    if (postCheckResponse.status === 404) {
+      return res.status(404).json({ error: 'Post not found.' });
+    }
+
+    if (!postCheckResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    const commentResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/comment/`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: req.userId,
+        postId,
+        content,
+      }),
+    });
+
+    if (!commentResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    return res.sendStatus(201);
+
+  }
+  catch (error) {
     return res.status(500).json({ error: 'Internal server error.' });
   }
 };
