@@ -3,24 +3,24 @@ const { v4: uuidv4 } = require('uuid');
 
 exports.createOneUser = async (req, res) => {
   try {
-    const { username, firstname, lastname, avatar, theme, langue } = req.body;
+    const { username, firstName, lastName, avatar, theme, langue } = req.body;
 
-    if (!username || !firstname || !lastname) {
-      return res.status(400).json({ error: 'Username, firstname and lastname are required.' });
+    if (!username || !firstName || !lastName) {
+      return res.status(400).json({ error: 'Username, firstName and lastName are required.' });
     }
 
-    await prisma.user.create({
+    const newUser = await prisma.user.create({
       data: {
         id: uuidv4(),
         username,
-        firstname,
-        lastname,
+        firstName,
+        lastName,
         avatar: avatar ?? null,
         theme:  theme  ?? 'LIGHT',
         langue: langue ?? 'en',
       },
     });
-    return res.sendStatus(201);
+    return res.status(201).json({ id : newUser.id });
   }
   catch (error) {
     switch (error.code) {
@@ -77,14 +77,14 @@ exports.getOneUser = async (req, res) => {
 exports.modifyOneUser = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { username, firstname, lastname, avatar, theme, langue } = req.body;
+    const { username, firstName, lastName, avatar, theme, langue } = req.body;
 
     await prisma.user.update({
       where: { id: userId },
       data: {
         ...(username  && { username }),
-        ...(firstname && { firstname }),
-        ...(lastname  && { lastname }),
+        ...(firstName && { firstName }),
+        ...(lastName  && { lastName }),
         ...(avatar    && { avatar }),
         ...(theme     && { theme }),
         ...(langue    && { langue }),

@@ -1,59 +1,56 @@
 const express = require('express');
 const router = express.Router();
-const bffCtrl = require ('./controller');
+const authCtrl = require ('./controllers/authController');
+const userCtrl = require ('./controllers/userController');
+const contentCtrl = require ('./controllers/contentController');
+const socialCtrl = require ('./controllers/socialController');
 const auth = require('../src/middleware/auth');
 const upload = require('../src/middleware/multer');
 
+// AUTH
 
-router.get('/register/42', bffCtrl.registerRedirectTo42);
-router.get('/register/callback', bffCtrl.registerHandleCallback);
+router.get('/register/42', authCtrl.registerRedirectTo42);
+router.get('/register/callback', authCtrl.registerHandleCallback);
+router.post('/register', auth, upload.single('avatar'), authCtrl.classicRegister);
+router.get('/auth/42', authCtrl.authRedirectTo42);
+router.get('/auth/callback', authCtrl.authHandleCallback);
+router.post('/auth', authCtrl.authClassic);
+router.put('/auth', auth, authCtrl.changePassword);
 
-router.get('/auth/42', bffCtrl.authRedirectTo42);
-router.get('/auth/callback', bffCtrl.authHandleCallback);
+// USER
 
-router.post('/auth/login', bffCtrl.authClassic);
+router.get('/user', auth, userCtrl.getAllUsers);
+router.get('/user/:userId', auth, userCtrl.getOneUser);
+router.put('/user/:userId', auth, upload.single('avatar'), userCtrl.modifyOneUser);
+router.put('/user/data42/:userId', auth, userCtrl.getBack42Datas);
+router.delete('/user/:userId', auth, userCtrl.deleteOneUser);
+router.get('/post/user/:userId', auth, userCtrl.getPostsFromUser);
+router.get('/post/commented/:userId', auth, userCtrl.getPostsCommentedByUser);
+router.get('/post/liked/:userId', auth, userCtrl.getPostsLikedByUser);
+router.get('/media/user/:userId', auth, userCtrl.getMediasFromUser);
+router.get('/search42Users/:login', auth, userCtrl.search42Users);
 
-router.get('/search42Users/:login', bffCtrl.search42Users);
+// CONTENT
 
-router.get('/uploads/:folder/:filename', auth, bffCtrl.getFiles);
-router.post('/avatar/:userId', auth, upload.single('avatar'), bffCtrl.uploadAvatar); // 'avatar' corrspond au champ dans le fromData
-router.post('/pdf/:userId', auth, upload.single('pdf'), bffCtrl.uploadPdf);
+router.get('/post', auth, contentCtrl.getPosts);
+router.post('/post', auth, upload.single('media'), contentCtrl.createOnePost);
+router.get('/post/:postId', auth, contentCtrl.getOnePost);
+router.put('/post/:postId',  auth, upload.single('media'), contentCtrl.modifyOnePost);
+router.delete('/post/:postId', auth, contentCtrl.deleteOnePost);
+router.get('/comment/post/:postId', auth, contentCtrl.getCommentsFromPost);
+router.post('/comment/post/:postId', auth, contentCtrl.createOneComment);
+router.put('/comment/:commentId', auth, contentCtrl.modifyOneComment);
+router.delete('/comment/:commentId', auth, contentCtrl.deleteOneComment);
+router.get('/like/post/:postId', auth, contentCtrl.getLikesFromPost);
+router.post('/like', auth, contentCtrl.likeOnePost);
+router.delete('/like/post/:postId', auth, contentCtrl.deleteLikeFromPost);
 
+// SOCIAL
 
-
-router.get('/media/user/:userId', verifyToken, filesCtrl.getUserFiles); //recup media user
-exports.getUserFiles = async (req, res) => {            // a check
-  try {
-    const { userId } = req.params;
-    const fs   = require('fs');
-    const path = require('path');
-
-    const getFiles = (folder) => {
-      const dir = `./uploads/${folder}`;
-      if (!fs.existsSync(dir)) return [];
-
-      return fs.readdirSync(dir)
-        .filter(file => file.startsWith(userId))
-        .map(file => {
-          const stats = fs.statSync(`${dir}/${file}`);
-          return {
-            filename:   file,
-            url:        `${process.env.BFF_URL}/files/${folder}/${file}`,
-            uploadedAt: stats.birthtime,
-          };
-        });
-    };
-
-    return res.status(200).json({
-      avatars: getFiles('avatars'),
-      pdfs:    getFiles('pdfs'),
-    });
-
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: 'Internal server error.' });
-  }
-};
+router.get('/social/followers', auth, socialCtrl.getFollowers);
+router.get('/social/friends', auth, socialCtrl.getFriends);
+router.post('/social/user/:userId', auth, socialCtrl.followUser);
+router.delete('/social/user/:userId', auth, socialCtrl.unfollowUser);
 
 module.exports = router;
 

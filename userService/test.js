@@ -33,8 +33,8 @@ async function run() {
       data: {
         id:        uuidv4(),
         username:  testUsername,
-        firstname: 'John',
-        lastname:  'Doe',
+        firstName: 'John',
+        lastName:  'Doe',
         avatar:    null,
         theme:     'LIGHT',
         langue:    'en',
@@ -78,7 +78,7 @@ async function run() {
   // 6. UNICITÉ
   try {
     await prisma.user.create({
-      data: { id: uuidv4(), username: testUsername, firstname: 'Jane', lastname: 'Doe' },
+      data: { id: uuidv4(), username: testUsername, firstName: 'Jane', lastName: 'Doe' },
     });
     console.log(`${ERR} UNIQUE  — Should have thrown P2002 !`);
   } catch (e) {

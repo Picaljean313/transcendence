@@ -3,7 +3,7 @@ const { v4: uuidv4 } = require('uuid'); // : permet de renommer la fonction v4 d
 
 exports.createOneAuth = async (req, res) => {
   try {
-    const { email, password, login42 } = req.body;
+    const { email, password, login42, userId } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
@@ -11,7 +11,8 @@ exports.createOneAuth = async (req, res) => {
 
     await prisma.auth.create({
       data: {
-        userId: uuidv4(),
+        id : uuidv4(),
+        userId,
         email,
         login42: login42 ?? null,
         password,

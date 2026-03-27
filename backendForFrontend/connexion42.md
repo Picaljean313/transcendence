@@ -265,7 +265,7 @@ BFF redirige le frontend avec le JWT
 **Cas 2 — Nouvel utilisateur :**
 ```
 BFF appelle authService  → createOneAuth  (email, login42, password vide)
-BFF appelle userService  → createOneUser  (username, firstname, lastname, avatar)
+BFF appelle userService  → createOneUser  (username, firstName, lastName, avatar)
 BFF génère un JWT
 BFF redirige le frontend avec le JWT
 ```
@@ -282,7 +282,7 @@ BFF redirige le frontend avec le JWT
 [5] BFF           →  API 42         POST /oauth/token (code + secret)
 [6] API 42        →  BFF            access_token
 [7] BFF           →  API 42         GET /v2/me (Bearer token)
-[8] API 42        →  BFF            login, firstname, lastname, email
+[8] API 42        →  BFF            login, firstName, lastName, email
 [9] BFF           →  authService    existe ? sinon créer
 [10] BFF          →  userService    existe ? sinon créer
 [11] BFF          →  Frontend       JWT

@@ -22,8 +22,8 @@ model Auth {
 
 - id
 - username
-- firstname
-- lastname
+- firstName
+- lastName
 - avatar
 - theme
 - langue
@@ -32,8 +32,8 @@ model Auth {
 model User {
   id        String   @id @default(uuid())
   username  String   @unique
-  firstname String
-  lastname  String
+  firstName String
+  lastName  String
   avatar    String?
   theme     Theme    @default(LIGHT)
   langue    String   @default("en")
@@ -222,8 +222,8 @@ datasource db {
 model User {
   id        String   @id @default(uuid())
   username  String   @unique
-  firstname String
-  lastname  String
+  firstName String
+  lastName  String
   avatar    String?
   theme     Theme    @default(LIGHT)
   langue    String   @default("en")

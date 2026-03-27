@@ -85,11 +85,12 @@ requête :
     body : formData {
         "user" : {
             "username" : ,         // = login 42 si co avec 42
-            "firstname" : ,
-            "lastname" : ,
-            "mail" : ,
+            "firstName" : ,
+            "lastName" : ,
+            "email" : ,
             "password" : ,
-            "avatar" :            // = URL donnée par 42 ou null si register avec son propre avatar
+            "avatar" : ,          // = URL donnée par 42 ou null si register avec son propre avatar
+            "is42" :              // boolean, = true si user 42
         },
         "avatar" :              // mettre le file correspondant, .jpg, .jpeg ou .png  OU ne pas mettre ce champ si register avec 42
     }
@@ -210,8 +211,8 @@ response :
             "id": ,                        
             "username": ,
             "email": ,
-            "firstname": ,
-            "lastname": ,
+            "firstName": ,
+            "lastName": ,
             "bio": ,
             "theme": ,
             "avatar": ,             // soit adresse de l'avatar 42, soit du style https://localhost:3000/files/avatars/abc-123_1711234567.jpg, gérer les deux possibilités en front
@@ -241,8 +242,8 @@ response :
       "id": ,                        
       "username": ,
       "email": ,
-      "firstname": ,
-      "lastname": ,
+      "firstName": ,
+      "lastName": ,
       "bio": ,
       "theme": ,
       "avatar": ,             // soit adresse de l'avatar 42, soit du style https://localhost:3000/files/avatars/abc-123_1711234567.jpg, gérer les deux possibilités en front
@@ -264,9 +265,9 @@ requête :
     body : formData {            
         "user" : {               // mettre uniquement les champs que le user veut changer sous la forme "username" : "Bob Marley"
             "username" : ,         
-            "firstname" : ,
-            "lastname" : ,
-            "mail" : 
+            "firstName" : ,
+            "lastName" : ,
+            "email" : 
         },
         "avatar" :              // mettre le file correspondant, .jpg, .jpeg ou .png  OU ne pas mettre ce champ si register avec 42 ou pas de changement d'avatar
     }
@@ -293,8 +294,8 @@ response :
     body : {                     // renvoie les données 42 pour que le front puisse les afficher si besoin
       "username": ,
       "email": ,
-      "firstname": ,
-      "lastname": ,
+      "firstName": ,
+      "lastName": ,
       "avatar": 
     }
 }
@@ -418,19 +419,19 @@ response :
     body : {
         "avatar": {
             "filename": ,           // "abc-123_1711234567.jpg"
-            "url":                  // "https://localhost:3000/files/avatars/abc-123_1711234567.jpg"
+            "url":                  // "https://localhost:3005/uploads/images/abc-123_1711234567.jpg"
         },
         "pdfs": [
             {
                 "filename": ,       // "abc-123_1711234568.pdf"
-                "url":              // "https://localhost:3000/files/pdfs/abc-123_1711234568.pdf"
+                "url":              // "https://localhost:3005/uploads/pdfs/abc-123_1711234568.pdf"
             },
             ...
         ],
         "images": [
             {
                 "filename": ,       // "abc-123_1711234568.jpg"
-                "url":              // "https://localhost:3000/files/pdfs/abc-123_1711234568.jpg"
+                "url":              // "https://localhost:3005/uploads/images/abc-123_1711234568.jpg"
             },
             ...
         ]
@@ -742,8 +743,8 @@ response :
         {
             "id": ,                        
             "username": ,
-            "firstname": ,
-            "lastname": ,
+            "firstName": ,
+            "lastName": ,
             "avatar": ,             // soit adresse de l'avatar 42, soit du style https://localhost:3000/files/avatars/abc-123_1711234567.jpg, gérer les deux possibilités en front
         },
         ...
@@ -767,8 +768,8 @@ response :
         {
             "id": ,                        
             "username": ,
-            "firstname": ,
-            "lastname": ,
+            "firstName": ,
+            "lastName": ,
             "avatar": ,             // soit adresse de l'avatar 42, soit du style https://localhost:3000/files/avatars/abc-123_1711234567.jpg, gérer les deux possibilités en front
         },
         ...

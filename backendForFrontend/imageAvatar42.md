@@ -35,8 +35,8 @@ await fetch(`${process.env.USER_SERVICE_URL}/users`, {
   method: 'POST',
   body: JSON.stringify({
     username:  login,
-    firstname: first_name,
-    lastname:  last_name,
+    firstName: first_name,
+    lastName:  last_name,
     avatar,       // ← l'URL de l'image
   }),
 });

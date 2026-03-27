@@ -1,6 +1,7 @@
 const multer = require('multer');
 const path   = require('path');
 const fs     = require('fs');
+const { v4: uuidv4 } = require('uuid');
 
 const uploadDirs = {
   image: './uploads/images',
@@ -17,8 +18,9 @@ const storage = multer.diskStorage({
     cb(null, isPdf ? uploadDirs.pdf : uploadDirs.image);
   },
   filename: (req, file, cb) => {
+    const user = req.userId ? req.userId : "avatar";
     const ext = path.extname(file.originalname);
-    const filename = `${req.params.userId}_${Date.now()}${ext}`;
+    const filename = `${user}_${Date.now()}${ext}`;
     cb(null, filename);
   },
 });

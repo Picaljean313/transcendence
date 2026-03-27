@@ -5,22 +5,23 @@ const contentCtrl = require ('./controller');
 router.post('/post/', contentCtrl.createOnePost);
 router.get('/post/', contentCtrl.getAllPosts);
 router.delete('/post/', contentCtrl.deleteAllPosts);
+router.get('/post/user/:userId', contentCtrl.getUserPosts);
+router.delete('/post/user/:userId', contentCtrl.deleteUserPosts);
+router.get('/post/count/user/:userId', contentCtrl.getUserPostsCount);
 router.get('/post/:postId', contentCtrl.getOnePost);
 router.put('/post/:postId', contentCtrl.modifyOnePost);
 router.delete('/post/:postId', contentCtrl.deleteOnePost);
-router.get('/post/:userId', contentCtrl.getUserPosts);
-router.get('/post/count/:userId', contentCtrl.getUserPostsCount);
-router.delete('/post/:userId', contentCtrl.deleteUserPosts);
 
 router.post('/comment/', contentCtrl.createOneComment);
 router.get('/comment/', contentCtrl.getAllComments);
 router.delete('/comment/', contentCtrl.deleteAllComments);
+router.get('/comment/user/:userId', contentCtrl.getUserComments);
+router.delete('/comment/user/:userId', contentCtrl.deleteUserComments);
+router.delete('/comment/post/:postId', contentCtrl.deletePostComments);
+router.get('/comment/count/post/:postId', contentCtrl.getPostCommentsCount);
 router.get('/comment/:commentId', contentCtrl.getOneComment);
 router.put('/comment/:commentId', contentCtrl.modifyOneComment);
 router.delete('/comment/:commentId', contentCtrl.deleteOneComment);
-router.get('/comment/:userId', contentCtrl.getUserComments);
-router.delete('/comment/:userId', contentCtrl.deleteUserComments);
-router.delete('/comment/:postId', contentCtrl.deletePostComments);
 
 // quand un utilisateur ou admin supprime un commentaire depuis le front, 
 // faire put (et non delete) et changer le champ booleen deleted    ---- > à gérer dans le BFF
@@ -28,9 +29,13 @@ router.delete('/comment/:postId', contentCtrl.deletePostComments);
 router.post('/like/', contentCtrl.createOneLike);
 router.get('/like/', contentCtrl.getAllLikes);
 router.delete('/like/', contentCtrl.deleteAllLikes);
+router.get('/like/user/:userId', contentCtrl.getUserLikes);
+router.delete('/like/user/:userId', contentCtrl.deleteUserLikes);
+router.delete('/like/post/:postId', contentCtrl.deletePostLikes);
 router.get('/like/:likeId', contentCtrl.getOneLike);
 router.delete('/like/:likeId', contentCtrl.deleteOneLike);
-router.delete('/like/:userId', contentCtrl.deleteUserLikes);
-router.delete('/like/:postId', contentCtrl.deletePostLikes);
+router.get('/like/count/post/:postId', contentCtrl.getPostLikesCount);
+
+router.delete('/user/:userId', contentCtrl.deleteOneUserContent);
 
 module.exports = router;

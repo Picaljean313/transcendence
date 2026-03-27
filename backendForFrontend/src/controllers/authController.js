@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require ('bcrypt');
-const path   = require('path');
 
 exports.registerRedirectTo42 = (req, res) => {
   const params = new URLSearchParams({
@@ -15,8 +14,8 @@ exports.registerHandleCallback = async (req, res) => {
   try {
     const { code, error } = req.query;
     if (error) {
-        return res.redirect(`${process.env.FRONTEND_URL}?error=login_cancelled`);
-      }
+      return res.redirect(`${process.env.FRONTEND_URL}?error=login_cancelled`);
+    }
     if (!code) {
       return res.status(400).json({ error: 'Authorization code missing.' });
     }
@@ -59,6 +58,98 @@ exports.registerHandleCallback = async (req, res) => {
   }
   catch (error) {
     console.error(error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.classicRegister = async (req, res) => {
+  try {
+    let user;
+    try {
+      user = JSON.parse(req.body.user);
+    }
+    catch {
+      return res.status(400).json({ error: 'Invalid user data format.' });
+    }
+
+    const { username, firstName, lastName, email, password, avatar: avatar42, is42 } = user;
+
+    const login42 = is42 ? username : null;
+
+    if (!username || !firstName || !lastName || !email || !password) {
+      return res.status(400).json({ error: 'username, firstName, lastName, email, password and is42 are required.' });
+    }
+
+    const avatar = req.file ? `${process.env.BFF_URL}/uploads/images/${req.file.filename}` : avatar42 ?? null;
+
+    let hashedPassword;
+    try {
+      hashedPassword = await bcrypt.hash(password, 10);
+    }
+    catch {
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+
+    const authCheckResponse = await fetch(`${process.env.AUTH_SERVICE_URL}/email/${email}`);
+
+    if (authCheckResponse.ok) {
+      return res.status(409).json({ error: 'Email already in use.' });
+    }
+
+    if (authCheckResponse.status !== 404) {
+      return res.status(503).json({ error: 'Auth service unavailable.' });
+    }
+
+    const userCheckResponse = await fetch(`${process.env.USER_SERVICE_URL}/username/${username}`);
+
+    if (userCheckResponse.ok) {
+      return res.status(409).json({ error: 'Username already in use.' });
+    }
+
+    if (userCheckResponse.status !== 404) {
+      return res.status(503).json({ error: 'User service unavailable.' });
+    }
+
+    const userResponse = await fetch(`${process.env.USER_SERVICE_URL}/`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':      'application/json'
+      },
+      body: JSON.stringify({
+        username,
+        firstName,
+        lastName,
+        avatar
+      }),
+    });
+
+    if (!userResponse.ok) {
+      return res.status(503).json({ error: 'Service unavailable.' });
+    }
+
+    const data = await userResponse.json();
+    const userId = data.id;
+
+    const authResponse = await fetch(`${process.env.AUTH_SERVICE_URL}/`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':      'application/json'
+      },
+      body: JSON.stringify({
+        userId,
+        email,
+        password: hashedPassword,
+        login42
+      }),
+    });
+
+    if (!authResponse.ok) {
+      return res.status(503).json({ error: 'Service unavailable.' });
+    }
+
+    return res.sendStatus(201);
+  }
+  catch (error) {
     return res.status(500).json({ error: 'Internal server error.' });
   }
 };
@@ -122,7 +213,7 @@ exports.authHandleCallback = async (req, res) => {
     }
 
     const [userResponse, friendsCount, followersCount, postsCount] = await Promise.all([
-      fetch(`${process.env.USER_SERVICE_URL}/id/${authResponse.userId}`).then(r => r.json()),
+      fetch(`${process.env.USER_SERVICE_URL}/${authResponse.userId}`).then(r => r.json()),
       fetch(`${process.env.SOCIAL_SERVICE_URL}/friendsCount/${authResponse.userId}`).then(r => r.json()),
       fetch(`${process.env.SOCIAL_SERVICE_URL}/followersCount/${authResponse.userId}`).then(r => r.json()),
       fetch(`${process.env.CONTENT_SERVICE_URL}/post/count/${authResponse.userId}`).then(r => r.json()),
@@ -134,8 +225,8 @@ exports.authHandleCallback = async (req, res) => {
         "id": authResponse.userId,                        
         "username": authResponse.login42,
         "email": authResponse.email,
-        "firstname": userResponse.firstname,
-        "lastname": userResponse.lastname,
+        "firstName": userResponse.firstName,
+        "lastName": userResponse.lastName,
         "bio": userResponse.bio,
         "theme": userResponse.theme,
         "avatar": userResponse.avatar,
@@ -199,7 +290,7 @@ exports.authClassic = async (req, res) => {
   }
 
   const [userResponse, friendsCount, followersCount, postsCount] = await Promise.all([
-    fetch(`${process.env.USER_SERVICE_URL}/id/${authResponse.userId}`).then(r => r.json()),
+    fetch(`${process.env.USER_SERVICE_URL}/${authResponse.userId}`).then(r => r.json()),
     fetch(`${process.env.SOCIAL_SERVICE_URL}/friendsCount/${authResponse.userId}`).then(r => r.json()),
     fetch(`${process.env.SOCIAL_SERVICE_URL}/followersCount/${authResponse.userId}`).then(r => r.json()),
     fetch(`${process.env.CONTENT_SERVICE_URL}/post/count/${authResponse.userId}`).then(r => r.json()),
@@ -211,8 +302,8 @@ exports.authClassic = async (req, res) => {
       "id": authResponse.userId,                        
       "username": authResponse.login42,
       "email": authResponse.email,
-      "firstname": userResponse.firstname,
-      "lastname": userResponse.lastname,
+      "firstName": userResponse.firstName,
+      "lastName": userResponse.lastName,
       "bio": userResponse.bio,
       "theme": userResponse.theme,
       "avatar": userResponse.avatar,
@@ -237,123 +328,57 @@ exports.authClassic = async (req, res) => {
   return res.status(200).json({user : user, token : token});
 };
 
-exports.uploadAvatar = async (req, res) => {
+exports.changePassword = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file provided.' });
+    const { password : oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ error: 'Old password and new password are required.' });
     }
 
-    const { userId } = req.params;
-    const filename   = req.file.filename;
+    const authResponse = await fetch(`${process.env.AUTH_SERVICE_URL}/user/${req.userId}`);
 
-    const response = await fetch(`${process.env.USER_SERVICE_URL}/id/${userId}`, {
+    if (!authResponse.ok) {
+      return res.status(503).json({ error: 'Auth service unavailable.' });
+    }
+
+    const auth = await authResponse.json();
+
+    let validPassword;
+    try {
+      validPassword = await bcrypt.compare(oldPassword, auth.password);
+    }
+    catch {
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Invalid password.' });
+    }
+
+    let hashedPassword;
+    try {
+      hashedPassword = await bcrypt.hash(newPassword, 10);
+    }
+    catch {
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+
+    const updateResponse = await fetch(`${process.env.AUTH_SERVICE_URL}/id/${req.userId}`, {
       method:  'PUT',
-      headers: {
-        'Content-Type':      'application/json'
-      },
-      body: JSON.stringify({ avatar: filename }),
-    });
-
-    if (!response.ok) {
-      return res.status(503).json({ error: 'User service unavailable.' });
-    }
-
-    return res.status(200).json({ avatar: filename });
-
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: 'Internal server error.' });
-  }
-};
-
-
-exports.getFiles = async (req, res) => {
-  const { folder, filename } = req.params;
-
-  if (folder.includes('..') || filename.includes('..')) {
-    return res.status(400).json({ error: 'Invalid path.' });
-  }
-
-  const allowedFolders = ['avatars', 'pdfs'];
-  if (!allowedFolders.includes(folder)) {
-    return res.status(400).json({ error: 'Invalid folder.' });
-  }
-
-  const filePath = path.resolve(`./uploads/${folder}/${filename}`);
-  
-  res.sendFile(filePath, (error) => {
-    if (error) {
-      return res.status(404).json({ error: 'File not found.' });
-    }
-  });
-};
-
-
-
-const getValid42Token = async () => {
-  try {
-    const response = await fetch('https://api.intra.42.fr/oauth/token', {
-      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        grant_type:    'client_credentials',
-        client_id:     process.env.FORTYTWO_CLIENT_ID,
-        client_secret: process.env.FORTYTWO_CLIENT_SECRET,
-      }),
+      body: JSON.stringify({ password: hashedPassword }),
     });
 
-    const data = await response.json();
-
-    if (!data.access_token) {
-      throw new Error('No access token in response.');
-    }
-    return data.access_token;
-  }
-  catch (error) {
-    console.error(error.message);
-    throw new Error('Failed to retrieve 42 token.');
-  }
-};
-
-exports.search42Users = async (req, res) => {
-  try {
-    const { login } = req.params;
-
-    if (!login || login.trim() === '') {
-      return res.status(400).json({ error: 'Search cannot be empty.' });
+    if (!updateResponse.ok) {
+      return res.status(503).json({ error: 'Auth service unavailable.' });
     }
 
-    const accessToken = await getValid42Token();
+    return res.sendStatus(200);
 
-    const params = new URLSearchParams({
-      'search[login]': login,
-      per_page:        10,
-    });
-
-    const response = await fetch(`https://api.intra.42.fr/v2/users?${params}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    const data = await response.json();
-
-    const users = data.map((user) => {
-      const cursus42 = user.cursus_users?.find(c => c.cursus.slug === '42cursus');
-
-      return {
-        id:          user.id,
-        login:       user.login,
-        displayName: user.displayname     ?? user.usual_full_name,
-        avatar:      user.image?.versions?.medium ?? user.image?.link,
-        campus:      user.campus?.[0]?.name       ?? 'Unknown',
-        cursus:      cursus42?.cursus?.name        ?? '42',
-        level:       cursus42?.level               ?? 0,
-      };
-    });
-
-    return res.status(200).json(users);
   }
   catch (error) {
-    console.error(error.message);
+    console.error(error);
     return res.status(500).json({ error: 'Internal server error.' });
   }
 };
