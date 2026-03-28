@@ -305,3 +305,187 @@ exports.createOneComment = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error.' });
   }
 };
+
+exports.modifyOneComment = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required.' });
+    }
+
+    const commentCheckResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/comment/${commentId}`);
+
+    if (commentCheckResponse.status === 404) {
+      return res.status(404).json({ error: 'Comment not found.' });
+    }
+
+    if (!commentCheckResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    const comment = await commentCheckResponse.json();
+
+    if (comment.userId !== req.userId) {
+      return res.status(403).json({ error: 'Forbidden.' });
+    }
+
+    const updateResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/comment/${commentId}`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+
+    if (!updateResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    return res.sendStatus(200);
+
+  }
+  catch (error) {
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.deleteOneComment = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+
+    const commentCheckResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/comment/${commentId}`);
+
+    if (commentCheckResponse.status === 404) {
+      return res.status(404).json({ error: 'Comment not found.' });
+    }
+
+    if (!commentCheckResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    const comment = await commentCheckResponse.json();
+
+    if (comment.userId !== req.userId) {
+      return res.status(403).json({ error: 'Forbidden.' });
+    }
+
+    const deleteResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/comment/${commentId}`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deleted: true }),
+    });
+
+    if (!deleteResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    return res.sendStatus(200);
+
+  }
+  catch (error) {
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.getLikesFromPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const likesResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/like/post/${postId}`);
+
+    if (likesResponse.status === 404) {
+      return res.status(404).json({ error: 'Post not found.' });
+    }
+
+    if (!likesResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    const likes = await likesResponse.json();
+
+    const result = likes.map(like => ({ userId: like.userId }));
+
+    return res.status(200).json(result);
+  }
+  catch (error) {
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.likeOnePost = async (req, res) => {
+  try {
+    const { postId } = req.body;
+
+    if (!postId) {
+      return res.status(400).json({ error: 'postId is required.' });
+    }
+
+    const postCheckResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/post/${postId}`);
+
+    if (postCheckResponse.status === 404) {
+      return res.status(404).json({ error: 'Post not found.' });
+    }
+
+    if (!postCheckResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    const likeResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/like/`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: req.userId,
+        postId,
+      }),
+    });
+
+    if (likeResponse.status === 409) {
+      return res.status(409).json({ error: 'Post already liked.' });
+    }
+
+    if (!likeResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    return res.sendStatus(201);
+  }
+  catch (error) {
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.deleteLikeFromPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const postCheckResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/post/${postId}`);
+
+    if (postCheckResponse.status === 404) {
+      return res.status(404).json({ error: 'Post not found.' });
+    }
+
+    if (!postCheckResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    const deleteResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/like/post/${postId}`, {
+      method:  'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ userId: req.userId }),
+    });
+
+    if (deleteResponse.status === 404) {
+      return res.status(404).json({ error: 'Like not found.' });
+    }
+
+    if (!deleteResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    return res.sendStatus(200);
+  }
+  catch (error) {
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+

@@ -36,7 +36,33 @@ exports.getAllPosts = async (req, res) => {
 
 
 
+exports.deletePostLike = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { userId } = req.body;
 
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required.' });
+    }
+
+    await prisma.like.delete({
+      where: {
+        userId_postId: { userId, postId },
+      },
+    });
+
+    return res.sendStatus(200);
+
+  } catch (error) {
+    switch (error.code) {
+      case 'P2025':
+        return res.status(404).json({ error: 'Like not found.' });
+      default:
+        console.error(error);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+};
 
 
 

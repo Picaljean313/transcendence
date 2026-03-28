@@ -11,6 +11,7 @@ router.get('/friends/:userId', socialCtrl.getUserFriends);
 router.get('/followers/:userId', socialCtrl.getUserFollowers);
 router.get('/friendsCount/:userId', socialCtrl.getUserFriendsCount);
 router.get('/followersCount/:userId', socialCtrl.getUserFollowersCount);
+router.delete('/user/:userId/friend/:friendId', socialCtrl.deleteOneSocialByUserAndFriend);
 router.delete('/user/:userId', socialCtrl.deleteOneUserSocials);
 
 module.exports = router;

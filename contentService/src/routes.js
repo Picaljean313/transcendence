@@ -33,7 +33,7 @@ router.delete('/like/', contentCtrl.deleteAllLikes);
 router.get('/like/user/:userId', contentCtrl.getUserLikes);
 router.delete('/like/user/:userId', contentCtrl.deleteUserLikes);
 router.get('/like/post/:postId', contentCtrl.getPostLikes);
-router.delete('/like/post/:postId', contentCtrl.deletePostLikes);
+router.delete('/like/post/:postId', contentCtrl.deletePostLike);
 router.get('/like/:likeId', contentCtrl.getOneLike);
 router.delete('/like/:likeId', contentCtrl.deleteOneLike);
 router.get('/like/count/post/:postId', contentCtrl.getPostLikesCount);

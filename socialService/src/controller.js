@@ -173,3 +173,26 @@ exports.getUserFollowersCount = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error.' });
   }
 };
+
+exports.deleteOneSocialByUserAndFriend = async (req, res) => {
+  try {
+    const { userId, friendId } = req.params;
+
+    await prisma.social.delete({
+      where: {
+        userId_friendId: { userId, friendId },
+      },
+    });
+
+    return res.sendStatus(200);
+  }
+  catch (error) {
+    switch (error.code) {
+      case 'P2025':
+        return res.status(404).json({ error: 'Social not found.' });
+      default:
+        console.error(error);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+};
