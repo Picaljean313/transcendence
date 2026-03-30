@@ -364,7 +364,7 @@ exports.changePassword = async (req, res) => {
       return res.status(500).json({ error: 'Internal server error.' });
     }
 
-    const updateResponse = await fetch(`${process.env.AUTH_SERVICE_URL}/id/${req.userId}`, {
+    const updateResponse = await fetch(`${process.env.AUTH_SERVICE_URL}/user/${req.userId}`, {
       method:  'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: hashedPassword }),

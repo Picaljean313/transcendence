@@ -124,7 +124,7 @@ exports.getUserFollowers = async (req, res) => {
   }
 };
 
-exports.deleteUserSocials = async (req, res) => {
+exports.deleteOneUserSocials = async (req, res) => {
   try {
     const { userId } = req.params;
 

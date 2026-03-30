@@ -30,7 +30,7 @@ exports.getAllUsers = async (req, res) => {
       users.map(user => Promise.all([
           fetch(`${process.env.SOCIAL_SERVICE_URL}/followersCount/${user.id}`).then(r => r.json()),
           fetch(`${process.env.SOCIAL_SERVICE_URL}/friendsCount/${user.id}`).then(r => r.json()),
-          fetch(`${process.env.CONTENT_SERVICE_URL}/post/count/${user.id}`).then(r => r.json()),
+          fetch(`${process.env.CONTENT_SERVICE_URL}/post/count/user/${user.id}`).then(r => r.json()),
         ])
       )
     );
@@ -71,7 +71,7 @@ exports.getOneUser = async (req, res) => {
       fetch(`${process.env.AUTH_SERVICE_URL}/user/${userId}`),
       fetch(`${process.env.SOCIAL_SERVICE_URL}/followersCount/${userId}`).then(r => r.json()),
       fetch(`${process.env.SOCIAL_SERVICE_URL}/friendsCount/${userId}`).then(r => r.json()),
-      fetch(`${process.env.CONTENT_SERVICE_URL}/post/count/${userId}`).then(r => r.json()),
+      fetch(`${process.env.CONTENT_SERVICE_URL}/post/count/user/${userId}`).then(r => r.json()),
     ]);
 
     if (userResponse.status === 404) {

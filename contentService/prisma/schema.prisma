@@ -28,7 +28,7 @@ model Comment {
   modifiedAt DateTime @updatedAt
   deleted    Boolean  @default(false)
 
-  post       Post @relation(fields: [postId], references: [id])
+  post       Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model Like {
@@ -36,7 +36,7 @@ model Like {
   userId String
   postId String
 
-  post   Post @relation(fields: [postId], references: [id])
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
 }

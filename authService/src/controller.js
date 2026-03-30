@@ -166,3 +166,72 @@ exports.getOneAuthByEmail = async (req, res) => {
   }
 };
 
+exports.getOneAuthByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const auth = await prisma.auth.findUnique({
+      where: { userId },
+    });
+
+    if (!auth) {
+      return res.status(404).json({ error: 'Auth not found.' });
+    }
+
+    return res.status(200).json(auth);
+
+  }
+  catch (error) {
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.modifyOneAuthByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { email, password, login42 } = req.body;
+
+    await prisma.auth.update({
+      where: { userId },
+      data: {
+        ...(email    && { email }),
+        ...(password && { password }),
+        ...(login42  && { login42 }),
+      },
+    });
+
+    return res.sendStatus(200);
+  }
+  catch (error) {
+    switch (error.code) {
+      case 'P2025':
+        return res.status(404).json({ error: 'Auth not found.' });
+      case 'P2002':
+        return res.status(409).json({ error: 'Email or login42 already in use.' });
+      default:
+        console.error(error);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+};
+
+exports.deleteOneUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    await prisma.auth.delete({
+      where: { userId },
+    });
+
+    return res.sendStatus(200);
+
+  } catch (error) {
+    switch (error.code) {
+      case 'P2025':
+        return res.status(404).json({ error: 'Auth not found.' });
+      default:
+        console.error(error);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+};
